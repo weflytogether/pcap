@@ -1,22 +1,20 @@
+# system package
 import os
 import time
 import sys
 import json
 import socket
 from threading import Thread
-
 # project local package
 from ping import do_one as ping_one
 from py_logger import py_log
 from config_parser import global_config
 import sta_sync_def
-# for debugging use
-import pdb
 
 class STASniffer(Thread):
     """Sniffer of Wi-Fi Connected Clients"""
 
-    def __init__(self, server_addr, dhcp_lease_file, check_client_period=5, sync_timeout=1):
+    def __init__(self, server_addr, dhcp_lease_file, check_client_period=5, sync_pkt_timeout=1):
         # init threading
         Thread.__init__(self)
 
@@ -24,7 +22,7 @@ class STASniffer(Thread):
         assert os.path.isfile(dhcp_lease_file), "Not a valid dhcp lease file!"
         self.dhcp_lease_file = dhcp_lease_file
         self.check_client_period = check_client_period
-        self.sync_timeout = sync_timeout
+        self.sync_pkt_timeout = sync_pkt_timeout
 
         # socket to contact with main thread
         self.sync_ev_socket = None
@@ -52,7 +50,7 @@ class STASniffer(Thread):
                 sta_sync_event.ip_addr, sta_sync_event.conn_ts)))
             
             # generate a icmp pkt to see if the sta is there
-            delay_second = ping_one(sta_sync_event.ip_addr, self.sync_timeout)
+            delay_second = ping_one(sta_sync_event.ip_addr, self.sync_pkt_timeout)
             if delay_second:
                 sta_sync_event.sync_delay = long(round(delay_second * 1000000))
                 py_log.debug("Resp received from [{}]-[{}] delay = {} us".format( \
@@ -101,20 +99,15 @@ class STASniffer(Thread):
         self.sync_ev_socket.close()
 
 
-# ============================= main processing starts from here ================================
-
-def main(argv):
+# ============================= for testing ================================
+if __name__ == '__main__':
     server_addr = global_config.sync_ev_server
     dhcp_lease_file = global_config.dhcp_lease_file
+    check_client_period = global_config.check_client_period
+    sync_pkt_timeout = global_config.sync_pkt_timeout
 
-    sta_sniffer = STASniffer(server_addr, dhcp_lease_file, check_client_period=5, sync_timeout=1)
+    sta_sniffer = STASniffer(server_addr, dhcp_lease_file, check_client_period=5, sync_pkt_timeout=1)
     sta_sniffer.sniff_start()
-#    sta_sniffer.sync_socket_create()
-#    sta_sniffer.check_client_state()
     while True:
-        py_log.info("I am main")
+        py_log.info("I am main thread")
         time.sleep(10)
-
-
-if __name__ == '__main__':
-    main(sys.argv)

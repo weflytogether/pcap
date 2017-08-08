@@ -1,5 +1,4 @@
 import os
-from py_logger import py_log
 
 class ConfigParser():
 
@@ -24,5 +23,9 @@ class ConfigParser():
                 self.sync_ev_server = (cf_parsed[1].split())[0]
             elif cf_parsed[0] == "dhcp_lease_file":
                 self.dhcp_lease_file = (cf_parsed[1].split())[0]
+            elif cf_parsed[0] == "check_client_period":
+                self.check_client_period = int((cf_parsed[1].split())[0])
+            elif cf_parsed[0] == "sync_pkt_timeout":
+                self.sync_pkt_timeout = int((cf_parsed[1].split())[0])
 
 global_config = ConfigParser('sniffer.config')

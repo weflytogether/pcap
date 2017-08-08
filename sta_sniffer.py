@@ -8,6 +8,7 @@ from threading import Thread
 # project local package
 from ping import do_one as ping_one
 from py_logger import py_log
+from config_parser import global_config
 import sta_sync_def
 # for debugging use
 import pdb
@@ -20,7 +21,7 @@ class STASniffer(Thread):
         Thread.__init__(self)
 
         # dhcp client file 
-        assert os.path.isfile(dhcp_lease_file), dhcp_lease_file + " is not a valid file!"
+        assert os.path.isfile(dhcp_lease_file), "Not a valid dhcp lease file!"
         self.dhcp_lease_file = dhcp_lease_file
         self.check_client_period = check_client_period
         self.sync_timeout = sync_timeout
@@ -56,20 +57,19 @@ class STASniffer(Thread):
                 sta_sync_event.sync_delay = long(round(delay_second * 1000000))
                 py_log.debug("Resp received from [{}]-[{}] delay = {} us".format( \
                         sta_sync_event.ip_addr, sta_sync_event.mac_addr, sta_sync_event.sync_delay))
-                # generate json string 
-                sta_sync_event_json = json.dumps(sta_sync_event.get_event_dict())
-                if self.sync_ev_socket:
-                    self.sync_ev_socket.sendto(sta_sync_event_json, self.sync_ev_server)
-                
             else:
                 py_log.warning("No resp received from [{}]-[{}]".format( \
                         sta_sync_event.ip_addr, sta_sync_event.mac_addr))
+
+            # generate json string 
+            sta_sync_event_json = json.dumps(sta_sync_event.get_event_dict())
+            if self.sync_ev_socket:
+                self.sync_ev_socket.sendto(sta_sync_event_json, self.sync_ev_server)
     
     def sync_socket_create(self):
         # delete socket file if it exists
         if not os.path.exists(self.sync_ev_server):
             py_log.error("UNIX UDP socket server address ({}) does not exist!".format(self.sync_ev_server))
-            py_log.error("No socket created!")
             self.sync_ev_server = None
             self.sync_ev_socket = None
             return
@@ -104,12 +104,9 @@ class STASniffer(Thread):
 # ============================= main processing starts from here ================================
 
 def main(argv):
-    if len(argv) < 2:
-        dhcp_lease_file = "dhcp.leases"
-    else:
-        dhcp_lease_file = argv[1]
-    
-    server_addr = './uds_socket'
+    server_addr = global_config.sync_ev_server
+    dhcp_lease_file = global_config.dhcp_lease_file
+
     sta_sniffer = STASniffer(server_addr, dhcp_lease_file, check_client_period=5, sync_timeout=1)
     sta_sniffer.sniff_start()
 #    sta_sniffer.sync_socket_create()

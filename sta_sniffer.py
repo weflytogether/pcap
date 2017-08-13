@@ -63,15 +63,15 @@ class STASniffer(Thread):
             # arp info
             if sta_sync_event.mac_addr in arp_flags.keys():
                 sta_sync_event.arp_conn = False if arp_flags[sta_sync_event.mac_addr] == 0 else True
-            # sync timestamp
+            # sync timestamp, delay
             sta_sync_event.sync_ts = int(round(time.time()))
+            sta_sync_event.sync_delay = -1
 
             py_log.debug(("STA DHCP: [NAME {}]-[MAC {}]-[IP {}]-[ARP {}]".format( \
                 sta_sync_event.sta_name, sta_sync_event.mac_addr, \
                 sta_sync_event.ip_addr, sta_sync_event.arp_conn)))
 
             # read arp connection status
-            sta_sync_event.sync_delay = -1
             if sta_sync_event.arp_conn == True:
                 # generate a icmp pkt to see if the sta is there
                 delay_second = ping_one(sta_sync_event.ip_addr, self.sync_pkt_timeout)

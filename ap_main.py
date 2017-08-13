@@ -9,9 +9,10 @@ import pdb
 ##### read global config ####
 from config_parser import global_config
 
+dhcp_lease_file = global_config.dhcp_lease_file
+arp_table_file = global_config.arp_table_file
 check_client_period = global_config.check_client_period
 sync_pkt_timeout = global_config.sync_pkt_timeout
-dhcp_lease_file = global_config.dhcp_lease_file
 sync_ev_server_addr = global_config.sync_ev_server_addr
 
 ##### init sta sync socket #####
@@ -30,7 +31,8 @@ if sta_sync_server.socket == None:
 
 ##### init sta_sniffer thread #####
 from sta_sniffer import STASniffer
-sta_sync_sniffer = STASniffer(sync_ev_server_addr, dhcp_lease_file, check_client_period, sync_pkt_timeout)
+sta_sync_sniffer = STASniffer(sync_ev_server_addr, dhcp_lease_file, arp_table_file, \
+        check_client_period, sync_pkt_timeout)
 sta_sync_sniffer.sniff_start()
 
 ##### start event poll #####

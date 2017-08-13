@@ -9,7 +9,9 @@ class STASyncEvent():
         self.mac_addr   = "00:00:00:00:00:00"   # null mac address
         self.ip_addr    = "192.168.0.1"         # default ip address
         self.conn_ts    = 0L                    # connection starting timestamp (second)
+        self.arp_conn   = True                  # connection status from arp command 
         self.sync_delay = -1L                   # sync delay (micro-second)
+        self.sync_ts    = 0L                    # sync event timestamp
         
     def read_dhcp_line(self, dhcp_line):
         dhcp_entry = dhcp_line.split()
@@ -23,14 +25,6 @@ class STASyncEvent():
         self.ip_addr    = dhcp_entry[2]
         self.sta_name   = dhcp_entry[3]
 
-    def read_ev_json(self, sta_ev_json):
-        event_dict = json.loads(sta_ev_json)
-        self.sta_name   = event_dict['sta_name']
-        self.mac_addr   = event_dict['mac_addr']
-        self.ip_addr    = event_dict['ip_addr']
-        self.conn_ts    = event_dict['conn_ts']
-        self.sync_delay = event_dict['sync_delay']
-
     def get_event_dict(self):
         event_dict = {}
         event_dict['sta_name']      = self.sta_name
@@ -38,18 +32,21 @@ class STASyncEvent():
         event_dict['ip_addr']       = self.ip_addr
         event_dict['conn_ts']       = self.conn_ts
         event_dict['sync_delay']    = self.sync_delay
+        event_dict['sync_ts']       = self.sync_ts
         return event_dict
 
     def get_event_json(self):
         ev_json = json.dumps(self.get_event_dict())
         return ev_json
 
-    def print_sync_event(self):
-        py_log.debug("sta_name: {}".format(self.sta_name))
-        py_log.debug("mac_addr: {}".format(self.mac_addr))
-        py_log.debug("ip_addr: {}".format(self.ip_addr))
-        py_log.debug("conn_ts: {}".format(self.conn_ts))
-        py_log.debug("sync_delay: {}".format(self.sync_delay))
+    def read_ev_json(self, sta_ev_json):
+        event_dict = json.loads(sta_ev_json)
+        self.sta_name   = event_dict['sta_name']
+        self.mac_addr   = event_dict['mac_addr']
+        self.ip_addr    = event_dict['ip_addr']
+        self.conn_ts    = event_dict['conn_ts']
+        self.sync_delay = event_dict['sync_delay']
+        self.sync_ts    = event_dict['sync_ts']
 
 
 
@@ -62,11 +59,12 @@ class STASyncSession():
         self.conn_ts    = 0L                    # connection starting timestamp (second)
         self.end_ts     = 0L                    # connection starting timestamp (second)
         self.sync_delay_list = []               # sync delay list (micro-second)
+        self.sync_ts_list    = []               # sync event timestamp (second)
         
     def init_ev(self, sta_sync_event):
         if not isinstance(sta_sync_event, STASyncEvent):
             raise
-        py_log.debug("init sync event session for {}-{}".format( \
+        py_log.debug("Init sync event session for {}-{}".format( \
                 sta_sync_event.sta_name, sta_sync_event.mac_addr))
         self.sta_name   = sta_sync_event.sta_name
         self.mac_addr   = sta_sync_event.mac_addr
@@ -74,16 +72,18 @@ class STASyncSession():
         self.conn_ts    = sta_sync_event.conn_ts
         self.end_ts     = -1
         self.sync_delay_list = [sta_sync_event.sync_delay]
+        self.sync_ts_list    = [sta_sync_event.sync_ts]
 
     def update_ev(self, sta_sync_event):
         if not isinstance(sta_sync_event, STASyncEvent):
             raise
-        py_log.debug("update sync event session for {}-{}".format( \
+        py_log.debug("Update sync event session for {}-{}".format( \
                 sta_sync_event.sta_name, sta_sync_event.mac_addr))
         if sta_sync_event.mac_addr == self.mac_addr:
             self.sync_delay_list.append(sta_sync_event.sync_delay)
+            self.sync_ts_list.append(sta_sync_event.sync_ts)
         else:
-            py_log.error("mismatched mac address -- sync event {} session {}".format( \
+            py_log.error("Mismatched MAC -- sync event {} session {}".format( \
                     sta_sync_event.mac_addr, self.mac_addr))
 
     def get_session_dict(self):
@@ -94,6 +94,7 @@ class STASyncSession():
         session_dict['conn_ts']       = self.conn_ts
         session_dict['end_ts']        = self.end_ts
         session_dict['sync_delay_list'] = self.sync_delay_list
+        session_dict['sync_ts_list']    = self.sync_ts_list
         return session_dict
 
     def get_session_json(self):

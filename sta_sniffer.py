@@ -1,13 +1,11 @@
 # system package
-import os
-import time
-import sys
-import socket
+import os, time, sys, socket, sched
 from threading import Thread
 # project local package
 from ping import do_one as ping_one
 from py_logger import py_log
 from config_parser import global_config
+import async_timer
 import sta_sync_def
 
 class STASniffer(Thread):
@@ -116,12 +114,21 @@ class STASniffer(Thread):
             py_log.error("No socket available ==> thread exits")
             return
 
+        # check client state timer
+        sta_check_timer_queue = async_timer.AsyncTimerQueue("sta_check_timer")
+        sta_check_timer_event = async_timer.AsyncTimerEvent(self.check_client_period, True, self.check_client_state)
+        sta_check_timer_queue.timer_put(sta_check_timer_event)
+
         py_log.info("STASniffer enters thread loop")
+        
         while self.runnning_flag:
-            self.check_client_state()    
-            time.sleep(self.check_client_period)
+            timer_cnt = sta_check_timer_queue.timer_batch_process()
+            time.sleep(0.1)
+
         py_log.info("STASniffer exits thread")
 
+        # clean up timer
+        sta_check_timer_queue.timer_clean()
         # close socket
         self.sync_ev_socket.close()
 
@@ -140,4 +147,4 @@ if __name__ == '__main__':
 
     while True:
         py_log.debug("I am main thread")
-        time.sleep(10)
+        time.sleep(1)

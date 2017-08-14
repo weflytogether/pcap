@@ -15,6 +15,9 @@ class ConfigParser():
         self.sync_delay_list_max = 100
         self.sync_session_expire = 60
         self.sync_session_check_period = 15
+
+        self.cloud_server_ip = "127.0.0.1"
+        self.cloud_server_port = 55555
         self.parse_config()
         
     def parse_config(self):
@@ -47,5 +50,9 @@ class ConfigParser():
                 self.sync_session_expire = int((cf_parsed[1].split())[0])
             elif cf_parsed[0] == "sync_session_check_period":
                 self.sync_session_check_period = int((cf_parsed[1].split())[0])
+            elif cf_parsed[0] == "cloud_server_ip":
+                self.cloud_server_ip = (cf_parsed[1].split())[0]
+            elif cf_parsed[0] == "cloud_server_port":
+                self.cloud_server_port = int((cf_parsed[1].split())[0])
 
 global_config = ConfigParser('sniffer.config')

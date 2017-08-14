@@ -97,7 +97,11 @@ class STASniffer(Thread):
             return
 
         # create unix domain socket (udp based)
-        self.sync_ev_socket = socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM)
+        try:
+            self.sync_ev_socket = socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM)
+        except:
+            self.sync_ev_server = None
+            self.sync_ev_socket = None
             
     # thread related function
     def sniff_start(self):
@@ -112,6 +116,7 @@ class STASniffer(Thread):
         self.sync_socket_create()
         if not self.sync_ev_socket:
             py_log.error("No socket available ==> thread exits")
+            self.runnning_flag = False
             return
 
         # check client state timer

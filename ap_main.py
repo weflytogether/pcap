@@ -3,7 +3,6 @@ import sys
 import time
 import os
 import asyncore
-import async_timer
 from py_logger import py_log
 import pdb
 
@@ -14,10 +13,20 @@ dhcp_lease_file = global_config.dhcp_lease_file
 arp_table_file = global_config.arp_table_file
 check_client_period = global_config.check_client_period
 sync_pkt_timeout = global_config.sync_pkt_timeout
+
 sync_ev_server_addr = global_config.sync_ev_server_addr
 sync_session_check_period = global_config.sync_session_check_period
 
+cloud_server_ip = global_config.cloud_server_ip
+cloud_server_port = global_config.cloud_server_port
+
 ##### init sta sync socket #####
+from cloud_reporter import CloudReporter
+cloud_reporter = CloudReporter(cloud_server_ip, cloud_server_port)
+if cloud_reporter.cloud_socket == None:
+    py_log.error("Failed to create cloud reporter socket ==> exit with -1")
+    sys.exit(-1)
+
 from central_controller import STASyncServer
 # Make sure the socket does not already exist
 try:
@@ -26,12 +35,13 @@ except OSError:
     if os.path.exists(sync_ev_server_addr):
         raise
 # Create an event poll with UNIX domain socket
-sta_sync_server = STASyncServer(sync_ev_server_addr)
+sta_sync_server = STASyncServer(sync_ev_server_addr, cloud_reporter)
 if sta_sync_server.socket == None:
     py_log.error("Failed to create sta sync server ==> exit with -1")
     sys.exit(-1)
 
 # Timer to check session expiration
+import async_timer
 sta_ss_timer_queue = async_timer.AsyncTimerQueue("sta_session_check")
 sta_ss_timer_event = async_timer.AsyncTimerEvent(sync_session_check_period, True, sta_sync_server.process_outdated_sessions)
 sta_ss_timer_queue.timer_put(sta_ss_timer_event)

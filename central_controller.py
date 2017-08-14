@@ -7,13 +7,22 @@ from config_parser import global_config
 
 class STASyncServer(asyncore.dispatcher):
 
-    def __init__(self, sync_ev_server_addr=('localhost', 0)):
+    def __init__(self, sync_ev_server_addr, cloud_reporter):
         asyncore.dispatcher.__init__(self)
 
-        self.create_socket(socket.AF_UNIX, socket.SOCK_DGRAM)
-        self.bind(sync_ev_server_addr)
+        try:
+            self.create_socket(socket.AF_UNIX, socket.SOCK_DGRAM)
+            self.bind(sync_ev_server_addr)
+        except:
+            py_log.error("Can not create socket on {}".format(sync_ev_server_addr))
+            self.socket = None
+            return
         py_log.info("Sta sync server starting up on {}".format(sync_ev_server_addr))
 
+        # cloud reporter object
+        self.cloud_reporter = cloud_reporter 
+
+        # sync sessions
         self.sta_sync_sessions = {}         # dict {MAC:Session}
         self.sync_delay_list_max = global_config.sync_delay_list_max
         self.sync_session_expire = global_config.sync_session_expire
@@ -65,14 +74,15 @@ class STASyncServer(asyncore.dispatcher):
             if len(sync_session.sync_delay_list) == self.sync_delay_list_max:
                 self.finalize_sync_session(sync_ev.mac_addr)
 
-        
     def finalize_sync_session(self, mac_addr):
         # fill end timestamp
         sync_session = self.sta_sync_sessions[mac_addr]
         sync_session.end_ts = int(time.time())
-        # TODO: report to cloud
+        py_log.debug("Sync session finalized for [NAME {}]-[MAC {}]".format(\
+                sync_session.sta_name, sync_session.mac_addr))
+        # report to cloud
         sync_session_json = sync_session.get_session_json()
-        py_log.debug("Sync session finalized: {}".format(sync_session_json))
+        self.cloud_reporter.report_json_string(sync_session_json)
         # remove session
         del self.sta_sync_sessions[mac_addr]
 

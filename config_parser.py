@@ -13,6 +13,8 @@ class ConfigParser():
 
         self.sync_ev_server_addr = None
         self.sync_delay_list_max = 100
+        self.sync_session_expire = 60
+        self.sync_session_check_period = 15
         self.parse_config()
         
     def parse_config(self):
@@ -41,5 +43,9 @@ class ConfigParser():
                 self.sync_ev_server_addr = (cf_parsed[1].split())[0]
             elif cf_parsed[0] == "sync_delay_list_max":
                 self.sync_delay_list_max = int((cf_parsed[1].split())[0])
+            elif cf_parsed[0] == "sync_session_expire":
+                self.sync_session_expire = int((cf_parsed[1].split())[0])
+            elif cf_parsed[0] == "sync_session_check_period":
+                self.sync_session_check_period = int((cf_parsed[1].split())[0])
 
 global_config = ConfigParser('sniffer.config')

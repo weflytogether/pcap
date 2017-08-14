@@ -16,6 +16,7 @@ class STASyncServer(asyncore.dispatcher):
 
         self.sta_sync_sessions = {}         # dict {MAC:Session}
         self.sync_delay_list_max = global_config.sync_delay_list_max
+        self.sync_session_expire = global_config.sync_session_expire
 
     def handle_read(self):
         sync_ev_json = self.recv(4096)
@@ -28,9 +29,13 @@ class STASyncServer(asyncore.dispatcher):
 
         self.update_sync_session(sync_ev)
 
+    def handle_close(self):
+        self.close()
+
     def update_sync_session(self, sync_ev):
         if not isinstance(sync_ev, sta_sync_def.STASyncEvent):
             raise
+        # processing sta sync event
         if sync_ev.mac_addr in self.sta_sync_sessions:
             sync_session = self.sta_sync_sessions[sync_ev.mac_addr]
             if sync_ev.sync_delay == -1:
@@ -43,24 +48,23 @@ class STASyncServer(asyncore.dispatcher):
                 sync_session.init_ev(sync_ev)
                 self.sta_sync_sessions[sync_ev.mac_addr] = sync_session
             else:
-                # if sync_delay_list reach a maximum ==> start a new session
-                # otherwise, update event to the session
-                if len(sync_session.sync_delay_list) == self.sync_delay_list_max:
-                    self.finalize_sync_session(sync_ev.mac_addr)
-                    sync_session = sta_sync_def.STASyncSession()
-                    sync_session.init_ev(sync_ev)
-                    self.sta_sync_sessions[sync_ev.mac_addr] = sync_session
-                else:
-                    sync_session.update_ev(sync_ev)
+                sync_session.update_ev(sync_ev)
         else:
             if sync_ev.sync_delay == -1:
                 py_log.warning("Invalid sync event ({}) with sync_delay {} ==> ev dropped".format(\
                         sync_ev.mac_addr, sync_ev.sync_delay))
-                return
-            # start a new session
-            sync_session = sta_sync_def.STASyncSession()
-            sync_session.init_ev(sync_ev)
-            self.sta_sync_sessions[sync_ev.mac_addr] = sync_session
+            else:
+                # start a new session
+                sync_session = sta_sync_def.STASyncSession()
+                sync_session.init_ev(sync_ev)
+                self.sta_sync_sessions[sync_ev.mac_addr] = sync_session
+
+        # if sync_delay_list reach a maximum ==> finalize the session
+        if sync_ev.mac_addr in self.sta_sync_sessions:
+            sync_session = self.sta_sync_sessions[sync_ev.mac_addr]
+            if len(sync_session.sync_delay_list) == self.sync_delay_list_max:
+                self.finalize_sync_session(sync_ev.mac_addr)
+
         
     def finalize_sync_session(self, mac_addr):
         # fill end timestamp
@@ -71,3 +75,16 @@ class STASyncServer(asyncore.dispatcher):
         py_log.debug("Sync session finalized: {}".format(sync_session_json))
         # remove session
         del self.sta_sync_sessions[mac_addr]
+
+    def process_outdated_sessions(self):
+        outdated_mac_list = []
+        cur_time = time.time()
+        for mac_addr in self.sta_sync_sessions.keys():
+            sync_session = self.sta_sync_sessions[mac_addr]
+            if (cur_time - sync_session.sync_ts_list[-1]) > self.sync_session_expire:
+                outdated_mac_list.append(mac_addr)
+
+        for mac_addr in outdated_mac_list:
+            py_log.info("Sync session expired ({})".format(mac_addr))
+            self.finalize_sync_session(mac_addr)
+

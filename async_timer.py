@@ -1,4 +1,4 @@
-from Queue import PriorityQueue
+from queue import PriorityQueue
 import time
 
 class AsyncTimerEvent():
@@ -9,8 +9,8 @@ class AsyncTimerEvent():
         self.callback = callback
         self.kwargs = kwargs
 
-    def __cmp__(self, other):
-        return cmp(self.timeout, other.timeout)
+    def __lt__(self, other):
+        return (self.timeout < other.timeout)
 
     def process(self):
         if self.callback:
@@ -61,14 +61,14 @@ class AsyncTimerQueue(PriorityQueue):
                 self.timer_put(timer_top)
                 break
         return timer_process_cnt
-                
-            
+
+
 
 # ============================= for testing ================================
 if __name__ == '__main__':
     def print_cb(**kwargs):
-        for arg in kwargs.iteritems():
-            print arg, time.time()
+        for arg in kwargs.items():
+            print("{}, {}".format(arg, time.time()))
 
     q = AsyncTimerQueue("test_queue")
     q.timer_put(AsyncTimerEvent(5, True, print_cb))
@@ -81,10 +81,10 @@ if __name__ == '__main__':
     while not q.empty():
         tmr_cnt = q.timer_batch_process()
         if tmr_cnt > 0:
-            print 'timeout processed ', tmr_cnt
+            print('timeout processed {}'.format(tmr_cnt))
         else:
             cnt += 1
             if cnt > 20:
                 q.timer_clean()
             time.sleep(0.5)
-            print 'no timeout at', time.time()
+            print('no timeout at {}'.format(time.time()))

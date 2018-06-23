@@ -8,10 +8,10 @@ class STASyncEvent():
         self.sta_name   = "STA_Default"         # default station name
         self.mac_addr   = "00:00:00:00:00:00"   # null mac address
         self.ip_addr    = "192.168.0.1"         # default ip address
-        self.conn_ts    = 0L                    # connection starting timestamp (second)
+        self.conn_ts    = 0                     # connection starting timestamp (second)
         self.arp_conn   = True                  # connection status from arp command 
-        self.sync_delay = -1L                   # sync delay (micro-second)
-        self.sync_ts    = 0L                    # sync event timestamp
+        self.sync_delay = -1                    # sync delay (micro-second)
+        self.sync_ts    = 0                     # sync event timestamp
         
     def read_dhcp_line(self, dhcp_line):
         dhcp_entry = dhcp_line.split()
@@ -56,8 +56,8 @@ class STASyncSession():
         self.sta_name   = "STA_Default"         # default station name
         self.mac_addr   = "00:00:00:00:00:00"   # null mac address
         self.ip_addr    = "192.168.0.1"         # default ip address
-        self.conn_ts    = 0L                    # connection starting timestamp (second)
-        self.end_ts     = 0L                    # connection starting timestamp (second)
+        self.conn_ts    = 0                     # connection starting timestamp (second)
+        self.end_ts     = 0                     # connection starting timestamp (second)
         self.sync_delay_list = []               # sync delay list (micro-second)
         self.sync_ts_list    = []               # sync event timestamp (second)
         

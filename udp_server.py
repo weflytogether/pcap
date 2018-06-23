@@ -1,7 +1,7 @@
 import socket
 import json
 import pdb
-UDP_IP = "10.51.12.220"
+UDP_IP = "10.0.1.4"
 UDP_PORT = 55555
 
 try:
